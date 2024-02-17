@@ -64,7 +64,7 @@ executable OMZ-Lab1
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:
   -- Other library packages from which modules are imported.
-  other-modules:    Paths_OMZ_Lab1
+  other-modules:    Paths_OMZ_Lab1, Data.DICOM.Utilities
   build-depends:
     , base
     , binary
@@ -76,6 +76,7 @@ executable OMZ-Lab1
     , lens
     , linear
     , pretty
+    , exception-transformers
 
   -- Directories containing source files.
   hs-source-dirs:   app
