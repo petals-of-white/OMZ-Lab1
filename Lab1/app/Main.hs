@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-
 module Main where
 import           Control.Monad                     (unless)
 import           Control.Monad.Exception           (MonadException)
