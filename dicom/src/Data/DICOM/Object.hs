@@ -97,7 +97,7 @@ dicm = BC.pack "DICM"
 data ElementContent
   = BytesContent B.ByteString
   | FragmentContent [B.ByteString]
-  | SequenceContent Sequence deriving Eq
+  | SequenceContent Sequence deriving (Eq)
 
 instance Show ElementContent where
   showsPrec p (BytesContent _)    = showParen (p > 10) $ showString "BytesContent {..}"
