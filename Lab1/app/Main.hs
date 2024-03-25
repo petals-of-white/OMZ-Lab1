@@ -7,11 +7,12 @@ import           Data.ByteString.Lazy              as LBS (append, fromStrict)
 import           Data.DICOM                        as Dicom
 import           Data.DICOM.Utilities
 import           Data.Maybe                        (fromJust)
-import           Data.Word                         (Word32, Word8)
+import           Data.Word                         (Word16, Word32, Word8)
 import           Graphics.GPipe
 import           Graphics.GPipe.Context.GLFW       (WindowConfig (..))
 import qualified Graphics.GPipe.Context.GLFW       as GLFW
-import           Graphics.GPipe.Context.GLFW.Input
+import Graphics.GPipe.Context.GLFW.Input
+    ( getKey, Key(Key'C, Key'L), KeyState(KeyState'Pressed) )
 import           Paths_OMZ_Lab1                    (getDataFileName)
 import           Prelude                           hiding (reverse)
 
@@ -20,11 +21,11 @@ main =
   let logicOp = LogicOp And
       transformColor green = V3 0 green 0 in
   do
-  filename <- getDataFileName "DICOM_Image_8b.dcm"
+  filename <- getDataFileName "DICOM_Image_16b.dcm"
   dicom <- either error id <$> readObjectFromFile filename
   let ((rows, columns), imgBytes, intercept, slope, bitsAlloc) = fromJust $ getDicomData dicom
       size = rows * columns
-      imgWord8 :: [Word8] = (decode . LBS.append (encode size) . fromStrict) imgBytes
+      imgWord8 :: [Word16] = (decode . LBS.append (encode size) . fromStrict) imgBytes
   putStrLn $
     "Rows: " ++ show rows ++ ". Columns: " ++ show columns ++ ". Intercept: "
     ++ show intercept ++ ". Slope: " ++ show slope ++ ". Bits allocated: " ++ show bitsAlloc
@@ -57,13 +58,13 @@ main =
 
     -- Textures
     let texSize = V2 rows columns
-    originalTex <- newTexture2D R8UI texSize 1
-    logicTex <- newTexture2D R8UI texSize 1
+    originalTex <- newTexture2D R16UI texSize 1
+    logicTex <- newTexture2D R16UI texSize 1
 
     writeTexture2D originalTex 0 0 texSize imgWord8
     writeTexture2D logicTex 0 0 texSize imgWord8
 
-    win <- newWindow (WindowFormatColor RGB8) ((GLFW.defaultWindowConfig "Lab1") {configWidth=rows, configHeight=columns})
+    win <- newWindow (WindowFormatColor R32F) ((GLFW.defaultWindowConfig "Lab1") {configWidth=rows*2, configHeight=columns*2})
 
     -- Shaders
     shaderMask <- compileShader $ do
@@ -86,23 +87,23 @@ main =
 
       let sampleTexture = sample2D samp SampleAuto Nothing Nothing
           -- перетворимо word8 на float
-          fragmentStream2 = fmap (((/ 255) . fmap toFloat) . transformColor . sampleTexture) fragmentStream
+          fragmentStream2 = fmap (((/ 65536) . toFloat)  . sampleTexture) fragmentStream
 
-      drawWindowColor (const (win, ContextColorOption NoBlending (pure True))) fragmentStream2
+      drawWindowColor (const (win, ContextColorOption (BlendRgbAlpha (FuncAdd, FuncAdd) (BlendingFactors SrcAlpha OneMinusSrcAlpha, BlendingFactors Zero One) (pure 1)) True)) fragmentStream2
 
     shaderWord8TexToWin <- compileShader $ do
       primitiveStream  <- toPrimitiveStream fst
 
       let primitiveStream2 = fmap (\(V2 x y, uv) -> (V4 x y 0 1, uv)) primitiveStream
-      fragmentStream <- rasterize (const (FrontAndBack, ViewPort (V2 0 0) (V2 rows columns), DepthRange 0 1)) primitiveStream2
+      fragmentStream <- rasterize (const (FrontAndBack, ViewPort (V2 0 0) (V2 (rows*2) (columns * 2)), DepthRange 0 1)) primitiveStream2
 
       let edge = (pure ClampToEdge, undefined)
       samp <- newSampler2D (\(_,targetTex) -> (targetTex, SamplerNearest, edge))
-      let sampleTexture = pure . sample2D samp SampleAuto Nothing Nothing
+      let sampleTexture = sample2D samp SampleAuto Nothing Nothing
           -- перетворимо word8 на float
-          fragmentStream2 = fmap (((/ 255) . fmap toFloat) . sampleTexture) fragmentStream
+          fragmentStream2 = fmap (((/ 65536) . toFloat) . sampleTexture) fragmentStream
 
-      drawWindowColor (const (win, ContextColorOption NoBlending (pure True))) fragmentStream2
+      drawWindowColor (const (win, ContextColorOption NoBlending True)) fragmentStream2
 
     render $ do
         rectangleVertArray <- newVertexArray vertexBufferMask
@@ -111,17 +112,20 @@ main =
           (toPrimitiveArray TriangleList rectangleVertArray)
           cImage
 
+
     renderLoop win Renderings {
       renderOriginal = do
+        clearWindowColor win 1
         vertexArray <- newVertexArray vertexBuffer1
         shaderWord8TexToWin (toPrimitiveArray TriangleStrip vertexArray, originalTex)
         ,
       renderLogic = do
+        clearWindowColor win 1
         vertexArray <- newVertexArray vertexBuffer1
         shaderWord8TexToWin (toPrimitiveArray TriangleStrip vertexArray, logicTex)
         ,
       renderColor = do
-        clearWindowColor win 0
+        clearWindowColor win 1
         vertexArray <- newVertexArray vertexBuffer1
         shaderTexColor (toPrimitiveArray TriangleStrip vertexArray)
     }

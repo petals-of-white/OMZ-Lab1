@@ -43,7 +43,7 @@ maintainer:      maxim.sivash@gmail.com
 category:        Graphics
 build-type:      Simple
 
-data-files: DICOM_Image_8b.dcm
+data-files: DICOM_Image_8b.dcm, DICOM_Image_16b.dcm
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
 extra-doc-files: CHANGELOG.md
 
