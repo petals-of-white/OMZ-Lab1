@@ -69,10 +69,14 @@ executable OMZ-Lab1
     App
     Data.DICOM.Utilities
     Paths_OMZ_Lab1
+    ColorModel
+    Types
+    LogicTrans
 
   build-depends:
     , base
     , binary
+    , bmp
     , bytestring
     , containers
     , dicom
@@ -80,6 +84,7 @@ executable OMZ-Lab1
     , hip
     , JuicyPixels
     , lens
+    , split
 
   -- , linear
   -- , pretty
